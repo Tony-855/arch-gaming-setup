@@ -20,7 +20,7 @@ fi
 
 sudo -v || exit
 
-   if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
+if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
     echo "Enabling multilib repository..."
     sudo sed -i '/^\s*#\s*\[multilib\]/,/\[/{s/^#//}' /etc/pacman.conf
     sudo pacman -Syy
