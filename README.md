@@ -1,10 +1,1 @@
-# arch-gaming-setup
-# arch-gaming-setup
-# arch-gaming-setup
-# arch-gaming-setup
-# arch-gaming-setup
-# arch-gaming-setup
-# arch-gaming-setup
-# arch-gaming-setup
-# arch-gaming-setup
-# arch-gaming-setup
+Mi primer Scrips de Arch Linux
