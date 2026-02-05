@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 GREEN="\e[32m"
 RESET="\e[0m"
@@ -7,6 +7,11 @@ RESET="\e[0m"
 echo "==========================="
 echo " Gaming Setup  -  Antony "
 echo "==========================="
+
+ping -c 1 archlinux.org >/dev/null || {
+  echo "No hay conexión a internet."
+  exit 1
+}
 
 if [ "$(id -u)" -eq 0 ]; then
     echo "No ejecutes como root."
@@ -17,7 +22,7 @@ sudo -v || exit
 
    if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
         echo "Enabling multilib repository..."
-        sudo tee -a /etc/pacman.conf > /dev/null <<EOT
+        sudo sed -i '/^\s*#\s*\[multilib\]/,/\[/{s/^#//}' /etc/pacman.conf
 
 [multilib]
 Include = /etc/pacman.d/mirrorlist
