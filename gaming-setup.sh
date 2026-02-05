@@ -21,17 +21,13 @@ fi
 sudo -v || exit
 
    if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
-        echo "Enabling multilib repository..."
-        sudo sed -i '/^\s*#\s*\[multilib\]/,/\[/{s/^#//}' /etc/pacman.conf
-
-[multilib]
-Include = /etc/pacman.d/mirrorlist
-EOT
-        sudo pacman -Sy
-        echo "Multilib repository has been enabled."
-    else
-        echo "Multilib repository is already enabled."
-    fi
+    echo "Enabling multilib repository..."
+    sudo sed -i '/^\s*#\s*\[multilib\]/,/\[/{s/^#//}' /etc/pacman.conf
+    sudo pacman -Syy
+    echo "Multilib repository has been enabled."
+else
+    echo "Multilib repository is already enabled."
+fi
 
 echo "Actualizando sistema..."
 sudo pacman -Syu --noconfirm
