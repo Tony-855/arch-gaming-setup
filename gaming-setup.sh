@@ -63,7 +63,7 @@ case $gpu in
     1)
         echo "Instalando drivers Nvidia..."
         sudo pacman -S --needed --noconfirm linux-headers base-devel dkms vulkan-icd-loader lib32-vulkan-icd-loader lib32-mesa lib32-opencl-nvidia vulkan-tools mesa-utils nvtop
-        yay -S nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-580xx-settings
+        yay -S --needed --noconfirm nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-580xx-settings
         sudo systemctl enable --now nvidia-persistenced.service
         sudo mkinitcpio -P
         ;;
