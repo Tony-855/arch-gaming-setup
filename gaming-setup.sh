@@ -39,6 +39,7 @@ read -r yay
 if [[ "$yay" =~ ^[Yy]$ ]]; then
     echo "Descargando yay..."
     sudo pacman -S --needed --noconfirm git base-devel
+    rm -rf yay-bin
     git clone https://aur.archlinux.org/yay-bin.git
     cd yay-bin || exit
     makepkg -si --noconfirm
@@ -128,5 +129,6 @@ case $pm_choice in
         ;;
 esac
 
+echo "export MANGOHUD=1" >> ~/.profile
 echo -e "${GREEN}Instalación finalizada correctamente.${RESET}"
 echo "Se recomienda reiniciar."
