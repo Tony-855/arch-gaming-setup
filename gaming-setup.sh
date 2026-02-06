@@ -93,6 +93,14 @@ if [[ "$kde_min" =~ ^[Yy]$ ]]; then
         xorg-xinit \
         plasma-meta \
         plasma-workspace \
+        nano \
+        openssh \
+        smartmontools \
+        vim \
+        wget \
+        iwd \
+        wireless_tools \
+        xdg-utils \
         konsole \
         dolphin \
         kate \
