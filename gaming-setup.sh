@@ -146,7 +146,7 @@ read -r pm_choice
 case $pm_choice in
     1)
         echo "Instalar Octopi"
-        yay -S --noconfirm octopi octopi-notifier
+        yay -S octopi
         ;;
     2)
         echo "Instalar Pamac"
