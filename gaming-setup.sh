@@ -91,11 +91,12 @@ if [[ "$kde_min" =~ ^[Yy]$ ]]; then
     sudo pacman -S --needed --noconfirm \
         xorg-server \
         xorg-xinit \
-        plasma-desktop \
+        plasma-meta \
         plasma-workspace \
         konsole \
         dolphin \
         kate \
+        ark \
         sddm
 
     echo "Habilitando SDDM..."
