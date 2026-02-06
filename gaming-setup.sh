@@ -79,6 +79,32 @@ case $gpu in
         ;;
 esac
 
+# ============================
+# KDE Minimal
+# ============================
+echo "¿Deseas instalar KDE Plasma Minimal? (y/n)"
+read -r kde_min
+
+if [[ "$kde_min" =~ ^[Yy]$ ]]; then
+    echo "Instalando KDE Plasma Minimal..."
+
+    sudo pacman -S --needed --noconfirm \
+        xorg-server \
+        xorg-xinit \
+        plasma-desktop \
+        plasma-workspace \
+        konsole \
+        dolphin \
+        kate \
+        sddm
+
+    echo "Habilitando SDDM..."
+    sudo systemctl enable sddm
+
+else
+    echo "Saltando instalación de KDE..."
+fi
+
 #Descargar paquetes necesarios
 echo "¿Instalar paquetes Gaming y utilidades con pacman y yay? (y/n)"
 read -r gaming
