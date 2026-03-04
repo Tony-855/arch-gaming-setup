@@ -1,168 +1,158 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# ============================================================
+#  ARCH AUTO REBUILD SCRIPT — Antony Edition
+#  Goal: restore drivers + gaming + NVIDIA + Wayland setup fast
+# ============================================================
+
 set -euo pipefail
 
 GREEN="\e[32m"
+YELLOW="\e[33m"
 RESET="\e[0m"
 
-echo "==========================="
-echo " Gaming Setup  -  Antony "
-echo "==========================="
-
-ping -c 1 archlinux.org >/dev/null || {
-  echo "No hay conexión a internet."
+if [ "$(id -u)" -eq 0 ]; then
+  echo "Do NOT run this script as root."
   exit 1
+fi
+
+# ------------------------------------------------------------
+# 0. BASIC CHECKS
+# ------------------------------------------------------------
+
+echo -e "${GREEN}Checking internet...${RESET}"
+ping -c 1 archlinux.org >/dev/null || {
+  echo "No internet connection."; exit 1;
 }
 
-if [ "$(id -u)" -eq 0 ]; then
-    echo "No ejecutes como root."
-    exit 1
-fi
+sudo -v
 
-sudo -v || exit
+# ------------------------------------------------------------
+# 1. SYSTEM UPDATE
+# ------------------------------------------------------------
 
-if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
-    echo "Enabling multilib repository..."
-    sudo sed -i '/^\s*#\s*\[multilib\]/,/\[/{s/^#//}' /etc/pacman.conf
-    sudo pacman -Syy
-    echo "Multilib repository has been enabled."
-else
-    echo "Multilib repository is already enabled."
-fi
-
-echo "Actualizando sistema..."
+echo -e "${GREEN}Updating system...${RESET}"
 sudo pacman -Syu --noconfirm
 
-#Descargar Yay en mi PC
-echo "¿Descargar Yay? (y/n)"
-read -r yay
+# ------------------------------------------------------------
+# 2. BASE TOOLS
+# ------------------------------------------------------------
 
-if [[ "$yay" =~ ^[Yy]$ ]]; then
-    echo "Descargando yay..."
-    sudo pacman -S --needed --noconfirm git base-devel
-    rm -rf yay-bin
-    git clone https://aur.archlinux.org/yay-bin.git
-    cd yay-bin || exit
-    makepkg -si --noconfirm
-    cd ~ && rm -rf yay-bin
+echo -e "${GREEN}Installing base packages...${RESET}"
+sudo pacman -S --needed --noconfirm \
+  git base-devel curl wget nano vim unzip \
+  mesa mesa-utils vulkan-tools
+
+# ------------------------------------------------------------
+# 3. INSTALL PARU (AUR HELPER)
+# ------------------------------------------------------------
+
+if ! command -v paru &> /dev/null; then
+  echo -e "${GREEN}Installing Paru...${RESET}"
+  git clone https://aur.archlinux.org/paru.git
+  cd paru
+  makepkg -si --noconfirm
+  cd ..
+  rm -rf paru
 else
-    echo "Saltando yay..."
+  echo "Paru already installed."
 fi
 
-if ! command -v yay &> /dev/null; then
-    echo "Yay no está instalado. Paquetes AUR no disponibles."
-    exit 1
-fi
+# ------------------------------------------------------------
+# 4. NVIDIA DRIVER STACK (GTX 750)
+# ------------------------------------------------------------
 
-#Drivers
-echo "Elige tu GPU:"
-echo "1) Nvidia"
-echo "2) AMD"
-echo "3) Ninguno"
-read -r gpu
+echo -e "${GREEN}Installing NVIDIA 580xx DKMS drivers...${RESET}"
 
-case $gpu in
-    1)
-        echo "Instalando drivers Nvidia..."
-        sudo pacman -S --needed base-devel dkms vulkan-icd-loader lib32-vulkan-icd-loader lib32-mesa lib32-opencl-nvidia vulkan-tools mesa-utils nvtop
-        yay -S --needed nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-580xx-settings
-        sudo mkinitcpio -P
-        ;;
-    2)
-        echo "Instalando drivers AMD..."
-        sudo pacman -S --needed --noconfirm mesa mesa-utils vulkan-radeon lib32-vulkan-radeon
-        ;;
-    3)
-        echo "Ninguno"
-        ;;
-    *)
-        echo "Opción inválida"
-        ;;
-esac
+sudo pacman -S --needed --noconfirm \
+  dkms linux-zen-headers \
+  vulkan-icd-loader lib32-vulkan-icd-loader \
+  lib32-mesa nvtop
 
-# ============================
-# KDE Minimal
-# ============================
-echo "¿Deseas instalar KDE Plasma Minimal? (y/n)"
-read -r kde_min
+paru -S --needed --noconfirm \
+  nvidia-580xx-dkms \
+  nvidia-580xx-utils \
+  lib32-nvidia-580xx-utils \
+  nvidia-580xx-settings
 
-if [[ "$kde_min" =~ ^[Yy]$ ]]; then
-    echo "Instalando KDE Plasma Minimal..."
+# Kernel rebuild
+sudo mkinitcpio -P
 
-    sudo pacman -S --needed --noconfirm \
-        xorg-server \
-        xorg-xinit \
-        plasma-meta \
-        plasma-workspace \
-        nano \
-        openssh \
-        smartmontools \
-        vim \
-        wget \
-        iwd \
-        wireless_tools \
-        xdg-utils \
-        konsole \
-        dolphin \
-        kate \
-        ark \
-        sddm
+# ------------------------------------------------------------
+# 5. NVIDIA WAYLAND FIXES
+# ------------------------------------------------------------
 
-    echo "Habilitando SDDM..."
-    sudo systemctl enable sddm
+echo -e "${GREEN}Applying NVIDIA Wayland environment fixes...${RESET}"
 
-else
-    echo "Saltando instalación de KDE..."
-fi
+sudo bash -c 'cat > /etc/environment <<EOF
+GBM_BACKEND=nvidia-drm
+__GLX_VENDOR_LIBRARY_NAME=nvidia
+LIBVA_DRIVER_NAME=nvidia
+EOF'
 
-#Descargar paquetes necesarios
-echo "¿Instalar paquetes Gaming y utilidades con pacman y yay? (y/n)"
-read -r gaming
+sudo mkdir -p /etc/modprobe.d
+sudo bash -c 'cat > /etc/modprobe.d/nvidia.conf <<EOF
+options nvidia NVreg_UsePageAttributeTable=1
+options nvidia-drm modeset=1 fbdev=1
+EOF'
 
-if [[ "$gaming" =~ ^[Yy]$ ]]; then
-    echo "Instalando paquetes Gaming y utilidades"
-    sudo pacman -S --needed --noconfirm steam lutris wine-staging winetricks gamemode lib32-gamemode giflib lib32-giflib libpng lib32-libpng libldap lib32-libldap gnutls lib32-gnutls mpg123 lib32-mpg123 openal lib32-openal \
-    v4l-utils lib32-v4l-utils libgpg-error lib32-libgpg-error alsa-plugins lib32-alsa-plugins alsa-lib lib32-alsa-lib libjpeg-turbo lib32-libjpeg-turbo sqlite lib32-sqlite libxcomposite lib32-libxcomposite libxinerama \
-    lib32-libxinerama ncurses lib32-ncurses opencl-icd-loader lib32-opencl-icd-loader libxslt lib32-libxslt libva lib32-libva gtk3 lib32-gtk3 gst-plugins-base-libs lib32-gst-plugins-base-libs \
-    discord mangohud lib32-mangohud goverlay gamescope bluez bluez-utils lib32-libpulse pipewire pipewire-pulse pipewire-alsa
+sudo mkinitcpio -P
 
-    yay -S --needed --noconfirm \
-vkbasalt lib32-vkbasalt \
-proton-ge-custom-bin \
-xone-dkms-git \
-dxvk-bin \
-vkd3d-proton-bin
+# Persistence daemon
+sudo systemctl enable nvidia-persistenced.service
 
-else
-    echo "Saltando este paso"
-fi
+# ------------------------------------------------------------
+# 6. WAYLAND + NIRI ENVIRONMENT
+# ------------------------------------------------------------
 
-#Intaladores gráficos
-echo "¿Descargar Octopi o Pamac?"
-echo "1) Octopi"
-echo "2) Pamac"
-echo "3) Arch Puro"
-read -r pm_choice
+echo -e "${GREEN}Installing Niri environment...${RESET}"
 
-case $pm_choice in
-    1)
-        echo "Instalar Octopi"
-        yay -S octopi
-        ;;
-    2)
-        echo "Instalar Pamac"
-        sudo pacman -S --needed --noconfirm glib2-devel glib2
-        yay -S --noconfirm libpamac-full pamac
-            sudo flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-        ;;
-    3)
-        echo "Para Discover en Arch Puro"
-        sudo pacman -S --needed --noconfirm flatpak
-        ;;
-    *)
-        echo "Opción inválida"
-        ;;
-esac
+sudo pacman -S --needed --noconfirm \
+  niri xorg-xwayland xwayland-satellite \
+  xdg-desktop-portal-gnome xdg-desktop-portal-gtk \
+  alacritty waybar
+
+paru -S --needed --noconfirm \
+  matugen cava qt6-multimedia-ffmpeg
+
+# ------------------------------------------------------------
+# 7. GAMING STACK
+# ------------------------------------------------------------
+
+echo -e "${GREEN}Installing gaming packages...${RESET}"
+
+sudo pacman -S --needed --noconfirm \
+  steam lutris wine-staging winetricks \
+  gamemode lib32-gamemode \
+  mangohud lib32-mangohud goverlay \
+  gamescope
+
+paru -S --needed --noconfirm \
+  proton-ge-custom-bin \
+  vkbasalt lib32-vkbasalt \
+  dxvk-bin vkd3d-proton-bin
+
+# ------------------------------------------------------------
+# 8. CPU PERFORMANCE TUNING
+# ------------------------------------------------------------
+
+echo -e "${GREEN}Configuring CPU performance governor...${RESET}"
+
+sudo pacman -S --needed --noconfirm cpupower
+sudo systemctl enable cpupower.service
+
+sudo sed -i "s/#governor=.*/governor='performance'/" /etc/default/cpupower || true
+
+# ------------------------------------------------------------
+# 9. QUALITY OF LIFE
+# ------------------------------------------------------------
 
 echo "export MANGOHUD=1" >> ~/.profile
-echo -e "${GREEN}Instalación finalizada correctamente.${RESET}"
-echo "Se recomienda reiniciar."
+
+# ------------------------------------------------------------
+# DONE
+# ------------------------------------------------------------
+
+echo -e "${GREEN}=====================================${RESET}"
+echo -e "${GREEN} Arch rebuild completed successfully ${RESET}"
+echo -e "${GREEN} Reboot recommended! ${RESET}"
+echo -e "${GREEN}=====================================${RESET}"
