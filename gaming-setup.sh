@@ -61,7 +61,7 @@ else
         if ! check_paru; then
                 log_ok "Paru instalado correctamente."
         else
-                log_erro "Fallo crítico al instalar Paru."
+                log_error "Fallo crítico al instalar Paru."
                 exit 1
         fi
 fi
