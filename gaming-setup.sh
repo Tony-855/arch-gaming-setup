@@ -52,13 +52,13 @@ sudo pacman -S --needed --noconfirm \
 check_paru() {
         command -v paru &> /dev/null
 }
-if ! check_paru; then
+if check_paru; then
         log_ok "Paru ya está instalado."
 else
         log_info "Instalando Paru..."
         install_paru
 
-        if ! check_paru; then
+        if check_paru; then
                 log_ok "Paru instalado correctamente."
         else
                 log_error "Fallo crítico al instalar Paru."
