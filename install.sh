@@ -35,22 +35,65 @@ install_paru() {
         log_info "Clonando repositorio de Paru..."
 
         git clone https://aur.archlinux.org/paru.git
-        cd paru
+        cd paru || exit
         makepkg -si --noconfirm
         cd ..
         rm -rf paru
 }
-# Comprobar y activar multilib
+# Comprobación de multilib
 enable_multilib() {
+
     if grep -q "^\[multilib\]" /etc/pacman.conf; then
-        echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+        log_ok "Multilib ya está habilitado"
+
+    elif grep -q "^#\[multilib\]" /etc/pacman.conf; then
+        sudo sed -i '/#\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
+        log_info "Multilib descomentado y habilitado"
+
+    else
+        sudo tee -a /etc/pacman.conf > /dev/null <<EOT
+[multilib]
+Include = /etc/pacman.d/mirrorlist
+EOT
+        log_info "Multilib agregado a pacman.conf"
     fi
 }
-if enable_multilib; then
-        log_ok "Multilib ya está habilitado"
-else
-        log_info "Habilitando Multilib..."
+enable_multilib
+# Comprobar e instalar Chaotic AUR
+check_chaotic() {
+        if grep -q "^\[chaotic-aur\]" /etc/pacman.conf; then
+                log_ok "Chaotic AUR ya está habilitado"
+        fi
+}
+install_chaotic() {
+        if ! grep -q "^\[chaotic-aur\]" /etc/pacman.conf; then
+                log_info "instalando Chaotic-AUR"
+        sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+        sudo pacman-key --lsign-key 3056513887B78AEB
+        sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
+        sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+        sudo tee -a /etc/pacman.conf > /dev/null <<EOT
+[chaotic-aur]
+Include = /etc/pacman.d/chaotic-mirrorlist
+EOT
+        log_info "Chaotic AUR agregado"
 fi
+}
+
+# Comprobar dependencias Paru
+ if check_chaotic; then
+         log_ok "Todo bien"
+ else
+         log_info "Instalando Chaotic"
+         install_chaotic
+         if check_paru; then
+                 log_ok "Chaotic instalado correctamente"
+         else
+                 log_error "Fallo crítico de Chaotic AUR"
+                 exit 1
+         fi
+ fi
+
 # Activar sudo al inicio
 sudo -v
 # Actualizar sistema
@@ -60,6 +103,7 @@ sudo pacman -Syu
 sudo pacman -S --needed --noconfirm \
         git base-devel curl wget nano vim unzip \
         mesa mesa-utils vulkan-tools
+
 
 # Comprobar Paru
 check_paru() {
