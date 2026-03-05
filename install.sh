@@ -29,7 +29,8 @@ else
      log_error "Compruebe su conexión Wi-Fi."
         exit 1
 fi
-
+# Activar sudo al inicio
+sudo -v
 # Instalación de paru
 install_paru() {
         log_info "Clonando repositorio de Paru..."
@@ -70,8 +71,8 @@ install_chaotic() {
                 log_info "instalando Chaotic-AUR"
         sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
         sudo pacman-key --lsign-key 3056513887B78AEB
-        sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
-        sudo pacman -U 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+        sudo pacman -U --noconfirm 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
+        sudo pacman -U --noconfirm 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
         sudo tee -a /etc/pacman.conf > /dev/null <<EOT
 [chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist
@@ -93,9 +94,7 @@ fi
                  exit 1
          fi
  fi
-
-# Activar sudo al inicio
-sudo -v
+ 
 # Actualizar sistema
 sudo pacman -Syu
 
