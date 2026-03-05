@@ -43,6 +43,9 @@ install_paru() {
 
 # Activar sudo al inicio
 sudo -v
+# Actualizar sistema
+sudo pacman -Syyu
+
 # Instalar paquetes base de Arch
 sudo pacman -S --needed --noconfirm \
         git base-devel curl wget nano vim unzip \
