@@ -64,6 +64,8 @@ enable_multilib
 check_chaotic() {
         if grep -q "^\[chaotic-aur\]" /etc/pacman.conf; then
                 log_ok "Chaotic AUR ya está habilitado"
+        else
+                log_info "Instalando Chaotic AUR..."
         fi
 }
 install_chaotic() {
