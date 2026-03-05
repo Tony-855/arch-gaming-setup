@@ -84,6 +84,7 @@ fi
  else
          log_info "Instalando Chaotic"
          install_chaotic
+         sudo pacman -Syy --noconfirm --needed
          if check_chaotic; then
                  log_ok "Chaotic instalado correctamente"
          else
