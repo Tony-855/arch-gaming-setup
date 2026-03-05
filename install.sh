@@ -24,7 +24,7 @@ fi
 
 # Comprobar wifi
 check_internet() {
-         ping -c 1 -W 2 8.8.8.8 > /dev/null 2>&1
+         curl -s --max-time 5 https://archlinux.org > /dev/null
 }
 if check_internet; then
      log_ok "Conexión Wi-Fi en orden."
@@ -32,8 +32,17 @@ else
      log_error "Compruebe su conexión Wi-Fi."
         exit 1
 fi
+
 # Activar sudo al inicio
+keep_sudo_alive() {
+    while true; do
+        sudo -n true
+        sleep 60
+    done &
+}
+
 sudo -v
+keep_sudo_alive
 # Instalación de paru
 install_paru() {
         log_info "Clonando repositorio de Paru..."
@@ -67,12 +76,16 @@ check_chaotic() {
        grep -q "^\[chaotic-aur\]" /etc/pacman.conf
 }
 install_chaotic() {
-        if ! grep -q "^\[chaotic-aur\]" /etc/pacman.conf; then
-                log_info "instalando Chaotic-AUR"
+       if ! check_chaotic; then
+
+        log_info "Instalando Chaotic AUR..."
+
         sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
         sudo pacman-key --lsign-key 3056513887B78AEB
+        
         sudo pacman -U --noconfirm 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst'
         sudo pacman -U --noconfirm 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+        
         sudo tee -a /etc/pacman.conf > /dev/null <<EOT
 [chaotic-aur]
 Include = /etc/pacman.d/chaotic-mirrorlist
@@ -126,7 +139,7 @@ fi
 # Drivers #
 ###########
 
-# Solo KERNEL ZEN nvidia 580xx DKMS y GRUB
+# Preparando dependencias para Kernel Zen y NVIDIA...
 install_firmware() {
 
     log_info "Instalando firmware..."
@@ -140,15 +153,28 @@ install_firmware() {
 }
 
 check_gpu_dependencies() {
-        sudo pacman -S --needed --noconfirm dkms linux-zen-headers  libglvnd
+        dkms linux-zen-headers libglvnd vulkan-icd-loader lib32-vulkan-icd-loader vulkan-tools
 }
 
+# 3. Instalación de Drivers NVIDIA (Capa de compatibilidad)
 install_gpu_drivers() {
-        sudo pacman -S --needed --noconfirm vulkan-icd-loader lib32-vulkan-icd-loader vulkan-tools \
-        egl-wayland egl-gbm egl-x11
-        paru -S --needed --noconfirm nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils \
+    log_info "Instalando drivers NVIDIA 580xx y soporte Wayland..."
+    
+   # Paquetes de soporte para Wayland/X11
+    sudo pacman -S --needed --noconfirm \
+        egl-wayland \
+        egl-gbm \
+        egl-x11
+
+    # Instalación del driver específico vía AUR
+    paru -S --needed --noconfirm \
+        nvidia-580xx-dkms \
+        nvidia-580xx-utils \
+        lib32-nvidia-580xx-utils \
         nvidia-580xx-settings \
-        opencl-nvidia-580xx lib32-opencl-nvidia-580xx libxnvctrl-580xx
+        opencl-nvidia-580xx \
+        lib32-opencl-nvidia-580xx \
+        libxnvctrl-580xx
 }
 
 configure_nvidia() {
@@ -170,10 +196,123 @@ EOT
 
     sudo systemctl enable nvidia-persistenced.service
 
-    log_ok "Configuración NVIDIA completada"
+    log_ok "Configuración NVIDIA completada."
 }
-# Instalaciones 
-install_firmware
-check_gpu_dependencies
-install_gpu_drivers
-configure_nvidia
+
+###################
+# Entorno gráfico #
+###################
+
+install_graphics() {
+    log_info "Instalando base mínima de Plasma..."
+
+    sudo pacman -S --needed --noconfirm \
+        xorg-server \
+        plasma-desktop \
+        sddm \
+        konsole \
+        dolphin \
+        kate \
+        ark \
+        plasma-nm \
+        power-daemon-profiles \
+        systemsettings \
+        khotkeys \
+        sddm-kcm
+
+    log_ok "Entorno ligero instalado."
+}
+enable_display_manager() {
+    # Habilitar servicios esenciales
+    
+    log_info "Activando SDDM y NetworkManager..."
+
+    sudo systemctl enable sddm.service
+    sudo systemctl enable NetworkManager
+
+    log_ok "Servicios activados."
+}
+
+###########################
+# Herramientas esenciales #
+###########################
+
+install_gaming_setup() {
+    log_info "Instalando ecosistema Gaming y herramientas..."
+
+    # 1. PLATAFORMAS Y CAPAS DE COMPATIBILIDAD
+    # Nota: No instalamos DXVK/VKD3D aquí porque Steam/Lutris ya los gestionan internamente
+    local GAMING_CORE=(
+        steam
+        lutris
+        wine-staging
+        winetricks
+        gamescope        # Micro-compositor para mejorar rendimiento en juegos
+    )
+
+    # 2. COMUNICACIÓN E INTERNET
+    local NET_TOOLS=(
+        firefox
+        vesktop          # Discord optimizado (mejor que el original para compartir pantalla)
+        yt-dlp           # Descarga de contenido
+    )
+
+    # 3. LIBRERÍAS DE COMPATIBILIDAD (32 y 64 bits).
+    local COMPAT_LIBS=(
+        giflib lib32-giflib
+        libpng lib32-libpng
+        libldap lib32-libldap
+        gnutls lib32-gnutls
+        mpg123 lib32-mpg123
+        openal lib32-openal
+        v4l-utils lib32-v4l-utils
+        libgpg-error lib32-libgpg-error
+        alsa-plugins lib32-alsa-plugins
+        alsa-lib lib32-alsa-lib
+        libjpeg-turbo lib32-libjpeg-turbo
+        sqlite lib32-sqlite
+        libxcomposite lib32-libxcomposite
+        libxinerama lib32-libxinerama
+        ncurses lib32-ncurses
+        opencl-icd-loader lib32-opencl-icd-loader
+        libxslt lib32-libxslt
+        gst-plugins-base-libs lib32-gst-plugins-base-libs
+    )
+
+    # 4. AUDIO, RENDIMIENTO Y MONITOREO
+    local PERF_AUDIO=(
+        pipewire-alsa
+        pipewire-pulse
+        lib32-libpulse
+        pavucontrol
+        easyeffects      # Filtros de audio y reducción de ruido
+        alsa-utils
+        gamemode
+        lib32-gamemode
+        mangohud         # Monitor de FPS y recursos
+        lib32-mangohud
+        goverlay         # Interfaz gráfica para configurar MangoHud/vkBasalt
+        irqbalance       # Optimiza el uso de núcleos del i3
+        preload          # Acelera la apertura de apps frecuentes
+    )
+
+    log_info "Instalando paquetes desde repositorios oficiales..."
+    sudo pacman -S --needed --noconfirm \
+        "${GAMING_CORE[@]}" \
+        "${NET_TOOLS[@]}" \
+        "${COMPAT_LIBS[@]}" \
+        "${PERF_AUDIO[@]}"
+
+    # 5. PAQUETES AUR (Instalación con Paru)
+    log_info "Instalando herramientas adicionales desde AUR..."
+    paru -S --needed --noconfirm \
+        vkbasalt lib32-vkbasalt \
+        proton-ge-custom-bin \
+        xone-dkms-git    # Driver para mandos de Xbox (si usas uno)
+
+    # Activar servicios de rendimiento
+    sudo systemctl enable --now irqbalance
+    sudo systemctl enable --now preload
+
+    log_ok "Instalación Gaming finalizada con éxito."
+}
