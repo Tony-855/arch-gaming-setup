@@ -62,9 +62,7 @@ EOT
 enable_multilib
 # Comprobar e instalar Chaotic AUR
 check_chaotic() {
-        if grep -q "^\[chaotic-aur\]" /etc/pacman.conf; then
-                log_ok "Chaotic AUR ya está habilitado"
-        fi
+       grep -q "^\[chaotic-aur\]" /etc/pacman.conf
 }
 install_chaotic() {
         if ! grep -q "^\[chaotic-aur\]" /etc/pacman.conf; then
@@ -96,7 +94,7 @@ fi
  fi
  
 # Actualizar sistema
-sudo pacman -Syu --noconfirm
+sudo pacman -Syyu --noconfirm
 
 # Instalar paquetes base de Arch
 sudo pacman -S --needed --noconfirm \
