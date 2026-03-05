@@ -94,7 +94,7 @@ fi
  fi
  
 # Actualizar sistema
-sudo pacman -Syyu --noconfirm
+sudo pacman -Syu --noconfirm --needed
 
 # Instalar paquetes base de Arch
 sudo pacman -S --needed --noconfirm \
