@@ -2,7 +2,10 @@
 
 set -euo pipefail
 
-# Verificaciones del sistema #
+################
+# Sistema Base #
+################
+
 # Colores de interfaz
 RED="\e[31m"
 GREEN="\e[32m"
@@ -98,9 +101,7 @@ sudo pacman -Syu --noconfirm --needed
 
 # Instalar paquetes base de Arch
 sudo pacman -S --needed --noconfirm \
-        git base-devel curl wget nano vim unzip \
-        mesa mesa-utils vulkan-tools
-
+        git base-devel curl wget nano vim unzip 
 
 # Comprobar Paru
 check_paru() {
@@ -111,6 +112,7 @@ if check_paru; then
 else
         log_info "Instalando Paru..."
         install_paru
+        sudo pacman -Syu --noconfirm
 
         if check_paru; then
                 log_ok "Paru instalado correctamente."
@@ -120,4 +122,53 @@ else
         fi
 fi
 
-log_ok "Instalación base completada"
+###########
+# Drivers #
+###########
+
+# Solo KERNEL ZEN nvidia 580xx DKMS y GRUB
+install_firmware() {
+
+    log_info "Instalando firmware..."
+
+    sudo pacman -S --needed --noconfirm \
+        linux-firmware \
+        linux-firmware-nvidia \
+        intel-ucode
+
+    log_ok "Firmware instalado"
+}
+
+check_gpu_dependencies() {
+        sudo pacman -S --needed --noconfirm dkms linux-zen-headers 
+}
+
+install_gpu_drivers() {
+        sudo pacman -S --needed --noconfirm vulkan-icd-loader lib32-vulkan-icd-loader vulkan-tools \
+        egl-wayland egl-gbm egl-x11 libglvnd
+        paru -S --needed --noconfirm nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils \
+        nvidia-580xx-settings \
+        opencl-nvidia-580xx lib32-opencl-nvidia-580xx libxnvctrl-580xx
+}
+
+configure_nvidia() {
+
+    log_info "Configurando módulos NVIDIA..."
+
+    sudo tee /etc/modules-load.d/nvidia.conf > /dev/null <<EOT
+nvidia
+nvidia_modeset
+nvidia_uvm
+nvidia_drm
+EOT
+
+    log_info "Regenerando initramfs..."
+
+    sudo mkinitcpio -P
+
+    log_info "Activando servicio NVIDIA..."
+
+    sudo systemctl enable nvidia-persistenced.service
+
+    log_ok "Configuración NVIDIA completada"
+}
