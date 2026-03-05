@@ -38,8 +38,7 @@ install_paru() {
         git clone https://aur.archlinux.org/paru.git
         cd paru || exit
         makepkg -si --noconfirm
-        cd ..
-        rm -rf paru
+        cd .. && rm -rf paru
 }
 # Comprobación de multilib
 enable_multilib() {
