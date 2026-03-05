@@ -40,7 +40,17 @@ install_paru() {
         cd ..
         rm -rf paru
 }
-
+# Comprobar y activar multilib
+enable_multilib() {
+    if grep -q "^\[multilib\]" /etc/pacman.conf; then
+        echo -e "\n[multilib]\nInclude = /etc/pacman.d/mirrorlist" >> /etc/pacman.conf
+    fi
+}
+if enable_multilib; then
+        log_ok "Multilib ya está habilitado"
+else
+        log_info "Habilitando Multilib..."
+fi
 # Activar sudo al inicio
 sudo -v
 # Actualizar sistema
