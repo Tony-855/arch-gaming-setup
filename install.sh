@@ -97,7 +97,7 @@ fi
  fi
  
 # Actualizar sistema
-sudo pacman -Syu --noconfirm --needed
+sudo pacman -Syu --noconfirm
 
 # Instalar paquetes base de Arch
 sudo pacman -S --needed --noconfirm \
@@ -140,12 +140,12 @@ install_firmware() {
 }
 
 check_gpu_dependencies() {
-        sudo pacman -S --needed --noconfirm dkms linux-zen-headers 
+        sudo pacman -S --needed --noconfirm dkms linux-zen-headers  libglvnd
 }
 
 install_gpu_drivers() {
         sudo pacman -S --needed --noconfirm vulkan-icd-loader lib32-vulkan-icd-loader vulkan-tools \
-        egl-wayland egl-gbm egl-x11 libglvnd
+        egl-wayland egl-gbm egl-x11
         paru -S --needed --noconfirm nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils \
         nvidia-580xx-settings \
         opencl-nvidia-580xx lib32-opencl-nvidia-580xx libxnvctrl-580xx
