@@ -122,4 +122,4 @@ else
         fi
 fi
 
-log_ok "Todo en ordén"
+log_ok "Instalación base completada"
