@@ -86,7 +86,7 @@ fi
  else
          log_info "Instalando Chaotic"
          install_chaotic
-         if check_paru; then
+         if check_chaotic; then
                  log_ok "Chaotic instalado correctamente"
          else
                  log_error "Fallo crítico de Chaotic AUR"
