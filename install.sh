@@ -64,8 +64,6 @@ enable_multilib
 check_chaotic() {
         if grep -q "^\[chaotic-aur\]" /etc/pacman.conf; then
                 log_ok "Chaotic AUR ya está habilitado"
-        else
-                log_info "Instalando Chaotic AUR..."
         fi
 }
 install_chaotic() {
@@ -98,7 +96,7 @@ fi
  fi
  
 # Actualizar sistema
-sudo pacman -Syu
+sudo pacman -Syu --noconfirm
 
 # Instalar paquetes base de Arch
 sudo pacman -S --needed --noconfirm \
