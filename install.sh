@@ -172,3 +172,8 @@ EOT
 
     log_ok "Configuración NVIDIA completada"
 }
+# Instalaciones 
+install_firmware
+check_gpu_dependencies
+install_gpu_drivers
+configure_nvidia
