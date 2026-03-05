@@ -24,7 +24,7 @@ fi
 
 # Comprobar wifi
 check_internet() {
-         curl -s --max-time 5 https://archlinux.org > /dev/null
+         curl -s --max-time 5 https://archlinux.org >/dev/null || return 1
 }
 if check_internet; then
      log_ok "Conexión Wi-Fi en orden."
@@ -46,7 +46,7 @@ keep_sudo_alive
 # Instalación de paru
 install_paru() {
         log_info "Clonando repositorio de Paru..."
-
+        rm -rf paru
         git clone https://aur.archlinux.org/paru.git
         cd paru || exit
         makepkg -si --noconfirm
@@ -153,7 +153,17 @@ install_firmware() {
 }
 
 check_gpu_dependencies() {
-        dkms linux-zen-headers libglvnd vulkan-icd-loader lib32-vulkan-icd-loader vulkan-tools
+
+    log_info "Instalando dependencias GPU..."
+
+    sudo pacman -S --needed --noconfirm \
+        dkms \
+        linux-zen \
+        linux-zen-headers
+        libglvnd \
+        vulkan-icd-loader \
+        lib32-vulkan-icd-loader \
+        vulkan-tools
 }
 
 # 3. Instalación de Drivers NVIDIA (Capa de compatibilidad)
@@ -180,12 +190,8 @@ install_gpu_drivers() {
 configure_nvidia() {
 
     log_info "Configurando módulos NVIDIA..."
-
-    sudo tee /etc/modules-load.d/nvidia.conf > /dev/null <<EOT
-nvidia
-nvidia_modeset
-nvidia_uvm
-nvidia_drm
+    sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<EOT
+options nvidia_drm modeset=1
 EOT
 
     log_info "Regenerando initramfs..."
@@ -218,7 +224,8 @@ install_graphics() {
         power-daemon-profiles \
         systemsettings \
         khotkeys \
-        sddm-kcm
+        sddm-kcm \
+        networkmanager
 
     log_ok "Entorno ligero instalado."
 }
