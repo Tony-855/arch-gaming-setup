@@ -234,13 +234,14 @@ install_plasma(){
 log_info "Installing KDE Plasma minimal"
 
 sudo pacman -S --needed --noconfirm \
- xorg-server \
- plasma \
+ plasma-desktop \
  konsole \
  dolphin \
  kate \
  sddm \
- networkmanager
+ networkmanager \
+ plasma-nm \
+ power-profiles-daemon
 
 sudo systemctl enable sddm
 sudo systemctl enable NetworkManager
