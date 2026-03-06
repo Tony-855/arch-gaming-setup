@@ -194,18 +194,26 @@ configure_nvidia() {
     sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<EOT
 options nvidia_drm modeset=1
 EOT
+    log_info "Regenerando Initramfs..."
+    sudo mkinitcpio -P
+    
     log_info "Activando servicio NVIDIA..."
 
     sudo systemctl enable nvidia-persistenced.service
 
     log_ok "Configuración NVIDIA completada."
 }
-configure_grub () {
-    log_info "Añadiendo módulos NVIDIA a mkinitcpio..."
-    sudo sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
-    
-    log_info "Regenerando initramfs..."
-    sudo mkinitcpio -P  
+configure_grub() {
+
+    log_info "Configurando parámetros del kernel para NVIDIA..."
+
+    sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia_drm.modeset=1 /' /etc/default/grub
+
+    log_info "Regenerando configuración de GRUB..."
+
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+
+    log_ok "GRUB configurado para NVIDIA + Wayland"
 }
 configure_gaming () {
     log_info "Configurando..."
@@ -215,6 +223,7 @@ EOT
     log_info "Reiniciando servivios"
     sysctl --system
 }
+
 ###################
 # Entorno gráfico #
 ###################
@@ -263,6 +272,8 @@ install_gaming_setup() {
         steam
         lutris
         wine-staging
+        wine-gecko
+        wine-mono
         winetricks
         gamescope        # Micro-compositor para mejorar rendimiento en juegos
     )
