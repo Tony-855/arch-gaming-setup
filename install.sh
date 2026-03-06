@@ -36,9 +36,10 @@ fi
 # Activar sudo al inicio
 keep_sudo_alive() {
     while true; do
-        sudo -n true
-        sleep 60
-    done &
+    sudo -n true
+    sleep 60
+done &
+SUDO_PID=$!
 }
 
 sudo -v
@@ -159,7 +160,7 @@ check_gpu_dependencies() {
     sudo pacman -S --needed --noconfirm \
         dkms \
         linux-zen \
-        linux-zen-headers
+        linux-zen-headers \
         libglvnd \
         vulkan-icd-loader \
         lib32-vulkan-icd-loader \
@@ -323,3 +324,4 @@ install_gaming_setup() {
 
     log_ok "Instalación Gaming finalizada con éxito."
 }
+kill $SUDO_PID
