@@ -75,7 +75,7 @@ EOT
 enable_multilib
 # Comprobar e instalar Chaotic AUR
 check_chaotic() {
-       grep -q "^\[chaotic-aur\]" /etc/pacman.conf
+       grep -q "^\[chaotic-aur\]" /etc/pacman.conf || return 1
 }
 install_chaotic() {
        if ! check_chaotic; then
@@ -148,7 +148,6 @@ install_firmware() {
 
     sudo pacman -S --needed --noconfirm \
         linux-firmware \
-        linux-firmware-nvidia \
         intel-ucode
 
     log_ok "Firmware instalado"
@@ -222,7 +221,7 @@ configure_gaming () {
 vm.max_map_count = 2147483642
 EOT
     log_info "Reiniciando servivios"
-    sysctl --system
+    sudo sysctl --system
 }
 
 ###################
@@ -241,7 +240,7 @@ install_graphics() {
         kate \
         ark \
         plasma-nm \
-        power-daemon-profiles \
+        power-profiles-daemon \
         systemsettings \
         khotkeys \
         sddm-kcm \
