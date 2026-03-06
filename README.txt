@@ -4,6 +4,6 @@ Comandos a utilizar:
 
 git clone https://github.com/Tony-855/arch-gaming-setup.git
 cd arch-gaming-setup
-chmod +x install.sh
-./install.sh
+chmod +x arch-gaming-setup.sh
+./arch-gaming-setup.sh
 
