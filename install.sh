@@ -338,6 +338,7 @@ check_gpu_dependencies
 install_gpu_drivers
 configure_nvidia
 configure_grub
+configure_gaming
 install_graphics
 enable_display_manager
 install_gaming_setup
