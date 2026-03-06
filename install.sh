@@ -69,7 +69,6 @@ enable_multilib() {
 Include = /etc/pacman.d/mirrorlist
 EOT
         log_info "Multilib agregado a pacman.conf"
-        sudo pacman -Syu --noconfirm
     fi
 }
 enable_multilib
@@ -168,23 +167,16 @@ check_gpu_dependencies() {
 }
 #Detectar GPU
 detect_gpu() {
-    log_info "Detectando GPU..."
-
-    if lspci | grep -E "NVIDIA"; then
-        GPU="nvidia"
-    elif lspci | grep -E "AMD|ATI"; then
-        GPU="amd"
-    elif lspci | grep -E "Intel"; then
-        GPU="intel"
-    else
-        GPU="unknown"
-    fi
-
-    log_info "GPU detectada: $GPU"
-}
-if [ "$GPU" = "nvidia" ]; then
-    install_gpu_drivers
+   if lspci | grep -qi nvidia; then
+    GPU="nvidia"
+elif lspci | grep -qi amd; then
+    GPU="amd"
+elif lspci | grep -qi intel; then
+    GPU="intel"
+else
+    GPU="unknown"
 fi
+}
 
 # 3. Instalación de Drivers NVIDIA (Capa de compatibilidad)
 install_gpu_drivers() {
@@ -210,7 +202,6 @@ install_gpu_drivers() {
 configure_nvidia() {
 
     log_info "Configurando módulos NVIDIA..."
-    sudo sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
     sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<EOT
 options nvidia_drm modeset=1
 EOT
@@ -381,9 +372,13 @@ install_gaming_setup() {
 }
 install_firmware
 check_gpu_dependencies
-install_gpu_drivers
-configure_nvidia
-configure_grub
+detect_gpu
+
+if [ "$GPU" = "nvidia" ]; then
+    install_gpu_drivers
+    configure_nvidia
+    configure_grub
+fi
 configure_gaming
 install_graphics
 enable_display_manager
