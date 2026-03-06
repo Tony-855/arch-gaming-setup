@@ -324,4 +324,15 @@ install_gaming_setup() {
 
     log_ok "Instalación Gaming finalizada con éxito."
 }
-kill $SUDO_PID
+install_firmware
+check_gpu_dependencies
+install_gpu_drivers
+configure_nvidia
+install_graphics
+enable_display_manager
+install_gaming_setup
+
+kill "${SUDO_PID:-}" 2>/dev/null || true
+
+log_ok "Instalación completada correctamente"
+log_info "Reinicia el sistema para aplicar los cambios"
