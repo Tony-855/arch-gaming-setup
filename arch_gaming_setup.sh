@@ -269,6 +269,8 @@ sudo pacman -S --needed --noconfirm \
  vkbasalt \
  lib32-vkbasalt \
  pipewire \
+ bluez \
+ bluez-utils \
  pipewire-alsa \
  pipewire-pulse \
  pavucontrol \
