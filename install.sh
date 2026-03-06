@@ -166,6 +166,25 @@ check_gpu_dependencies() {
         lib32-vulkan-icd-loader \
         vulkan-tools
 }
+#Detectar GPU
+detect_gpu() {
+    log_info "Detectando GPU..."
+
+    if lspci | grep -E "NVIDIA"; then
+        GPU="nvidia"
+    elif lspci | grep -E "AMD|ATI"; then
+        GPU="amd"
+    elif lspci | grep -E "Intel"; then
+        GPU="intel"
+    else
+        GPU="unknown"
+    fi
+
+    log_info "GPU detectada: $GPU"
+}
+if [ "$GPU" = "nvidia" ]; then
+    install_gpu_drivers
+fi
 
 # 3. Instalación de Drivers NVIDIA (Capa de compatibilidad)
 install_gpu_drivers() {
@@ -269,6 +288,18 @@ install_gaming_setup() {
 
     # 1. PLATAFORMAS Y CAPAS DE COMPATIBILIDAD
     # Nota: No instalamos DXVK/VKD3D aquí porque Steam/Lutris ya los gestionan internamente
+    local TOOLS=(
+        btop
+        fastfetch
+        tree
+        ncdu
+        unrar
+        cava
+        cmatrix
+        fish
+        nvim
+        duf
+    )
     local GAMING_CORE=(
         steam
         lutris
@@ -326,6 +357,7 @@ install_gaming_setup() {
 
     log_info "Instalando paquetes desde repositorios oficiales..."
     sudo pacman -S --needed --noconfirm \
+        "${TOOLS[@]}" \
         "${GAMING_CORE[@]}" \
         "${NET_TOOLS[@]}" \
         "${COMPAT_LIBS[@]}" \
@@ -342,7 +374,9 @@ install_gaming_setup() {
     sudo systemctl enable --now irqbalance
     sudo systemctl enable --now preload
     sudo systemctl enable --now ananicy-cpp.service
-
+    sudo systemctl enable --now fstrim.timer 
+    #Asumo que Bluetoth, Network Manager y Cups ya estan habilitados.
+    
     log_ok "Instalación Gaming finalizada con éxito."
 }
 install_firmware
