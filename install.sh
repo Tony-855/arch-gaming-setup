@@ -69,6 +69,7 @@ enable_multilib() {
 Include = /etc/pacman.d/mirrorlist
 EOT
         log_info "Multilib agregado a pacman.conf"
+        sudo pacman -Sy --noconfirm
     fi
 }
 enable_multilib
