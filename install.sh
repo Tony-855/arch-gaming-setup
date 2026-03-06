@@ -194,16 +194,18 @@ configure_nvidia() {
     sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<EOT
 options nvidia_drm modeset=1
 EOT
-
-    log_info "Regenerando initramfs..."
-
-    sudo mkinitcpio -P
-
     log_info "Activando servicio NVIDIA..."
 
     sudo systemctl enable nvidia-persistenced.service
 
     log_ok "Configuración NVIDIA completada."
+}
+configure_grub () {
+    log_info "Añadiendo módulos NVIDIA a mkinitcpio..."
+    sudo sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
+    
+    log_info "Regenerando initramfs..."
+    sudo mkinitcpio -P  
 }
 
 ###################
@@ -328,6 +330,7 @@ install_firmware
 check_gpu_dependencies
 install_gpu_drivers
 configure_nvidia
+configure_grub
 install_graphics
 enable_display_manager
 install_gaming_setup
