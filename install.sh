@@ -207,7 +207,14 @@ configure_grub () {
     log_info "Regenerando initramfs..."
     sudo mkinitcpio -P  
 }
-
+configure_gaming () {
+    log_info "Configurando..."
+    sudo tee /etc/sysctl.d/80-gamecompatibility.conf > /dev/null <<EOT
+vm.max_map_count = 2147483642
+EOT
+    log_info "Reiniciando servivios"
+    sysctl --system
+}
 ###################
 # Entorno gráfico #
 ###################
