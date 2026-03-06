@@ -136,9 +136,19 @@ else
         fi
 fi
 
-###########
-# Drivers #
-###########
+############################
+# Drivers y compatibilidad #
+############################
+
+#Esperar que tengas GRUB
+check_bootloader() {
+    if command -v grub-mkconfig &>/dev/null; then
+        log_ok "GRUB detectado"
+    else
+        log_error "GRUB no está instalado. Instala un bootloader antes."
+        exit 1
+    fi
+}
 
 # Preparando dependencias para Kernel Zen y NVIDIA...
 install_firmware() {
@@ -373,6 +383,7 @@ install_gaming_setup() {
 }
 install_firmware
 check_gpu_dependencies
+check_bootloader
 detect_gpu
 
 if [ "$GPU" = "nvidia" ]; then
