@@ -3,10 +3,8 @@ set -euo pipefail
 
 ############################################
 # Arch Gaming Setup Script (Modular)
-# Inspired by Garuda/CachyOS style setups
 ############################################
 
-# Logging
 exec > >(tee -i install.log) 2>&1
 
 RED="\e[31m"
@@ -59,6 +57,7 @@ keep_sudo_alive
 ############################################
 
 detect_cpu(){
+
   if grep -qi intel /proc/cpuinfo; then
     CPU="intel"
   elif grep -qi amd /proc/cpuinfo; then
@@ -71,6 +70,7 @@ detect_cpu(){
 }
 
 detect_gpu(){
+
   if lspci | grep -E "NVIDIA" >/dev/null; then
     GPU="nvidia"
   elif lspci | grep -E "AMD|ATI" >/dev/null; then
@@ -85,10 +85,11 @@ detect_gpu(){
 }
 
 ############################################
-# Bootloader check
+# Bootloader detection
 ############################################
 
 check_bootloader(){
+
   if command -v grub-mkconfig &>/dev/null; then
     BOOTLOADER="grub"
   elif command -v bootctl &>/dev/null; then
@@ -105,13 +106,15 @@ check_bootloader(){
 ############################################
 
 enable_multilib(){
+
   if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
+
+    log_info "Enabling multilib repository"
 
     sudo sed -i '/#\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
 
-    log_info "Enabling multilib"
-
     sudo pacman -Syy
+
   fi
 }
 
@@ -133,6 +136,8 @@ sudo pacman -S --needed --noconfirm \
 install_paru(){
 
 if ! command -v paru &>/dev/null; then
+
+  log_info "Installing paru AUR helper"
 
   git clone https://aur.archlinux.org/paru.git
   cd paru
@@ -165,25 +170,40 @@ esac
 }
 
 ############################################
-# GPU Drivers
+# NVIDIA Drivers (Gaming optimized)
 ############################################
 
 install_nvidia(){
 
+log_info "Installing NVIDIA drivers and gaming dependencies"
+
 sudo pacman -S --needed --noconfirm \
- dkms linux-zen linux-zen-headers \
- vulkan-icd-loader lib32-vulkan-icd-loader vulkan-tools \
- egl-wayland egl-gbm egl-x11
+ dkms \
+ linux-zen \
+ linux-zen-headers \
+ libglvnd \
+ vulkan-icd-loader \
+ lib32-vulkan-icd-loader \
+ vulkan-tools \
+ egl-wayland \
+ egl-gbm \
+ egl-x11 \
+ lib32-libglvnd
 
 paru -S --needed --noconfirm \
  nvidia-580xx-dkms \
  nvidia-580xx-utils \
  lib32-nvidia-580xx-utils \
- lib32-opencl-nvidia-580xx 
+ nvidia-580xx-settings \
+ opencl-nvidia-580xx \
+ lib32-opencl-nvidia-580xx \
+ libxnvctrl-580xx
 
 }
 
 configure_nvidia(){
+
+log_info "Configuring NVIDIA modules"
 
 sudo sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
 
@@ -198,6 +218,7 @@ sudo systemctl enable nvidia-persistenced.service
 if [[ "$BOOTLOADER" == "grub" ]]; then
 
  sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia_drm.modeset=1 /' /etc/default/grub
+
  sudo grub-mkconfig -o /boot/grub/grub.cfg
 
 fi
@@ -205,21 +226,21 @@ fi
 }
 
 ############################################
-# Desktop Environment
+# KDE Plasma Minimal
 ############################################
 
 install_plasma(){
 
+log_info "Installing KDE Plasma minimal"
+
 sudo pacman -S --needed --noconfirm \
  xorg-server \
  plasma \
- kde-applications-meta \
+ konsole \
+ dolphin \
+ kate \
  sddm \
- konsole dolphin kate ark \
- plasma-nm \
- systemsettings \
- networkmanager \
- power-profiles-daemon
+ networkmanager
 
 sudo systemctl enable sddm
 sudo systemctl enable NetworkManager
@@ -227,20 +248,31 @@ sudo systemctl enable NetworkManager
 }
 
 ############################################
-# Gaming Stack
+# Gaming stack
 ############################################
 
 install_gaming(){
 
-sudo pacman -S --needed --noconfirm \
- steam lutris \
- wine-staging winetricks wine-mono wine-gecko \
- gamescope mangohud lib32-mangohud \
- pipewire-alsa pipewire-pulse \
- pavucontrol
+log_info "Installing gaming environment"
 
 sudo pacman -S --needed --noconfirm \
- firefox vesktop
+ steam \
+ lutris \
+ wine-staging \
+ winetricks \
+ wine-mono \
+ wine-gecko \
+ gamescope \
+ mangohud \
+ lib32-mangohud \
+ vkbasalt \
+ lib32-vkbasalt \
+ pipewire \
+ pipewire-alsa \
+ pipewire-pulse \
+ pavucontrol \
+ firefox \
+ vesktop
 
 sudo pacman -S --needed --noconfirm \
  btop fastfetch fish neovim tree ncdu duf
@@ -250,8 +282,8 @@ sudo pacman -S --needed --noconfirm \
 
 paru -S --needed --noconfirm \
  proton-ge-custom-bin \
- vkbasalt lib32-vkbasalt \
- ananicy-cpp cachyos-ananicy-rules
+ ananicy-cpp \
+ cachyos-ananicy-rules
 
 sudo systemctl enable --now irqbalance
 sudo systemctl enable --now preload
@@ -260,10 +292,12 @@ sudo systemctl enable --now ananicy-cpp
 }
 
 ############################################
-# System Tweaks
+# Gaming kernel tweaks
 ############################################
 
 configure_gaming_kernel(){
+
+log_info "Applying gaming sysctl tweaks"
 
 sudo tee /etc/sysctl.d/80-gamecompatibility.conf > /dev/null <<EOF
 vm.max_map_count = 2147483642
@@ -274,7 +308,7 @@ sudo sysctl --system
 }
 
 ############################################
-# Main installer menu
+# Menu
 ############################################
 
 menu(){
@@ -282,42 +316,60 @@ menu(){
 clear
 
 echo "Arch Gaming Setup"
-
+echo
 echo "1) Drivers"
 echo "2) Desktop"
 echo "3) Gaming"
 echo "4) Full install"
+echo
 
 read -rp "Option: " OPTION
 
 case $OPTION in
 
 1)
+
  install_microcode
- install_nvidia
- configure_nvidia
+
+ if [[ "$GPU" == "nvidia" ]]; then
+  install_nvidia
+  configure_nvidia
+ fi
+
  ;;
 
 2)
+
  install_plasma
+
  ;;
 
 3)
+
  install_gaming
  configure_gaming_kernel
+
  ;;
 
 4)
+
  install_microcode
- install_nvidia
- configure_nvidia
+
+ if [[ "$GPU" == "nvidia" ]]; then
+  install_nvidia
+  configure_nvidia
+ fi
+
  install_plasma
  install_gaming
  configure_gaming_kernel
+
  ;;
 
 *)
+
  log_error "Invalid option"
+
  ;;
 
 esac
@@ -328,17 +380,13 @@ esac
 # Execution
 ############################################
 
-
 detect_cpu
-
 detect_gpu
-
 check_bootloader
 
 enable_multilib
 
 install_base
-
 install_paru
 
 menu
