@@ -178,7 +178,8 @@ sudo pacman -S --needed --noconfirm \
 paru -S --needed --noconfirm \
  nvidia-580xx-dkms \
  nvidia-580xx-utils \
- lib32-nvidia-580xx-utils
+ lib32-nvidia-580xx-utils \
+ lib32-opencl-nvidia-580xx 
 
 }
 
@@ -211,10 +212,12 @@ install_plasma(){
 
 sudo pacman -S --needed --noconfirm \
  xorg-server \
- plasma-desktop \
+ plasma \
+ kde-applications-meta \
  sddm \
  konsole dolphin kate ark \
- plasma-nm systemsettings \
+ plasma-nm \
+ systemsettings \
  networkmanager \
  power-profiles-daemon
 
@@ -248,7 +251,7 @@ sudo pacman -S --needed --noconfirm \
 paru -S --needed --noconfirm \
  proton-ge-custom-bin \
  vkbasalt lib32-vkbasalt \
- ananicy-cpp ananicy-rules-git
+ ananicy-cpp cachyos-ananicy-rules
 
 sudo systemctl enable --now irqbalance
 sudo systemctl enable --now preload
