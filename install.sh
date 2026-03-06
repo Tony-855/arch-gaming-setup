@@ -69,7 +69,7 @@ enable_multilib() {
 Include = /etc/pacman.d/mirrorlist
 EOT
         log_info "Multilib agregado a pacman.conf"
-        sudo pacman -Sy --noconfirm
+        sudo pacman -Syu --noconfirm
     fi
 }
 enable_multilib
@@ -191,6 +191,7 @@ install_gpu_drivers() {
 configure_nvidia() {
 
     log_info "Configurando módulos NVIDIA..."
+    sudo sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
     sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<EOT
 options nvidia_drm modeset=1
 EOT
@@ -315,8 +316,7 @@ install_gaming_setup() {
         pavucontrol
         easyeffects      # Filtros de audio y reducción de ruido
         alsa-utils
-        gamemode
-        lib32-gamemode
+        ananicy-cpp
         mangohud         # Monitor de FPS y recursos
         lib32-mangohud
         goverlay         # Interfaz gráfica para configurar MangoHud/vkBasalt
@@ -334,13 +334,14 @@ install_gaming_setup() {
     # 5. PAQUETES AUR (Instalación con Paru)
     log_info "Instalando herramientas adicionales desde AUR..."
     paru -S --needed --noconfirm \
-        vkbasalt lib32-vkbasalt \
+        vkbasalt lib32-vkbasalt ananicy-rules-git \
         proton-ge-custom-bin \
         xone-dkms-git    # Driver para mandos de Xbox (si usas uno)
 
     # Activar servicios de rendimiento
     sudo systemctl enable --now irqbalance
     sudo systemctl enable --now preload
+    sudo systemctl enable --now ananicy-cpp.service
 
     log_ok "Instalación Gaming finalizada con éxito."
 }
