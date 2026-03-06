@@ -332,8 +332,10 @@ install_gaming_setup() {
 
     # 4. AUDIO, RENDIMIENTO Y MONITOREO
     local PERF_AUDIO=(
+        pipewire
         pipewire-alsa
         pipewire-pulse
+        wireplumber
         lib32-libpulse
         pavucontrol
         easyeffects      # Filtros de audio y reducción de ruido
@@ -343,7 +345,7 @@ install_gaming_setup() {
         lib32-mangohud
         goverlay         # Interfaz gráfica para configurar MangoHud/vkBasalt
         irqbalance       # Optimiza el uso de núcleos del i3
-        preload          # Acelera la apertura de apps frecuentes
+        preload          # Acelera la apertura de apps frecuentes para HDD
     )
 
     log_info "Instalando paquetes desde repositorios oficiales..."
@@ -364,8 +366,7 @@ install_gaming_setup() {
     # Activar servicios de rendimiento
     sudo systemctl enable --now irqbalance
     sudo systemctl enable --now preload
-    sudo systemctl enable --now ananicy-cpp.service
-    sudo systemctl enable --now fstrim.timer 
+    sudo systemctl enable --now ananicy-cpp.service 
     #Asumo que Bluetoth, Network Manager y Cups ya estan habilitados.
     
     log_ok "Instalación Gaming finalizada con éxito."
