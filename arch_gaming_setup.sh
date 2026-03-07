@@ -591,21 +591,11 @@ configure_gaming_kernel(){
   
   # Usamos un solo archivo para centralizar las mejoras
   sudo tee /etc/sysctl.d/80-gamecompatibility.conf > /dev/null <<EOF2
-# --- SECCIÓN GAMING (Arch Wiki / SteamOS) ---
-# Necesario para evitar crashes en juegos modernos (Proton)
 vm.max_map_count = 2147483642
-
-# --- SECCIÓN MEMORIA Y HDD (Optimización 8GB RAM) ---
-# Retrasa el uso del HDD lo más posible
 vm.swappiness = 10
-# Mantiene el índice de archivos en RAM (ayuda a la fluidez del HDD)
 vm.vfs_cache_pressure = 50
-# Evita ráfagas pesadas de escritura que congelen el HDD
 vm.dirty_ratio = 10
 vm.dirty_background_ratio = 5
-
-# --- SECCIÓN PROCESADOR (i3-3220 Latency) ---
-# Organiza procesos por grupos para que el escritorio no se trabe al jugar
 kernel.sched_autogroup_enabled = 1
 EOF2
   
@@ -619,68 +609,60 @@ EOF2
 ############################################
 
 menu(){
+  clear
 
-clear
+  echo "Arch Gaming Setup"
+  echo
+  echo "1) Drivers (microcode + NVIDIA if detected)"
+  echo "2) Desktop (KDE + NetworkManager)"
+  echo "3) Gaming (apps + kernel tweaks + services)"
+  echo "4) Audio/Bluetooth stack"
+  echo "5) Full install"
+  echo "6) Prep only (multilib/pacman/update/Chaotic-AUR)"
+  echo
 
-echo "Arch Gaming Setup"
-echo
-echo "1) Drivers"
-echo "2) Desktop"
-echo "3) Gaming"
-echo "4) Full install"
-echo
+  read -rp "Option: " OPTION
 
-read -rp "Option: " OPTION
+  case "$OPTION" in
+    1)
+      install_microcode
 
-case $OPTION in
+      if [[ "$GPU" == "nvidia" ]]; then
+        install_nvidia
+        configure_nvidia
+      fi
+      ;;
+    2)
+      install_plasma
+      ;;
+    3)
+      install_gaming
+      configure_gaming_kernel
+      ;;
+    4)
+      install_audio_bluetooth
+      ;;
+    5)
+      install_microcode
 
-1)
+      if [[ "$GPU" == "nvidia" ]]; then
+        install_nvidia
+        configure_nvidia
+      fi
 
- install_microcode
-
- if [[ "$GPU" == "nvidia" ]]; then
-  install_nvidia
-  configure_nvidia
- fi
-
- ;;
-
-2)
-
- install_plasma
-
- ;;
-
-3)
-
- install_gaming
- configure_gaming_kernel
-
- ;;
-
-4)
-
- install_microcode
-
- if [[ "$GPU" == "nvidia" ]]; then
-  install_nvidia
-  configure_nvidia
- fi
-
- install_plasma
- install_gaming
- configure_gaming_kernel
-
- ;;
-
-*)
-
- log_error "Invalid option"
-
- ;;
-
-esac
-
+      install_plasma
+      install_audio_bluetooth
+      install_gaming
+      configure_gaming_kernel
+      ;;
+    6)
+      log_ok "Preparation completed"
+      ;;
+    *)
+      log_error "Invalid option"
+      exit 1
+      ;;
+  esac
 }
 
 ############################################
@@ -692,13 +674,14 @@ detect_gpu
 check_bootloader
 
 enable_multilib
-
+optimize_pacman
+refresh_databases
+update_system
 install_base
+setup_chaotic_aur
 install_paru
 
 menu
 
-kill "${SUDO_PID:-}" 2>/dev/null || true
-
-log_ok "Installation finished"
-log_info "Reboot recommended"
+log_ok "Instalación terminada."
+log_info "Es recomendable reiniciar."
