@@ -524,7 +524,8 @@ install_plasma(){
     bluedevil \
     ark \
     networkmanager \
-    kwalletmanager
+    kwalletmanager \
+    kvantum
 
   sudo systemctl enable sddm
   sudo systemctl enable NetworkManager
