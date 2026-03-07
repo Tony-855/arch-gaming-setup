@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
 
 ############################################
 # Arch Gaming Setup Script (Modular)
@@ -16,6 +16,182 @@ log_ok(){ echo -e "${GREEN}[OK]${ENDCOLOR} $1"; }
 log_info(){ echo -e "${YELLOW}[INFO]${ENDCOLOR} $1"; }
 log_error(){ echo -e "${RED}[ERROR]${ENDCOLOR} $1"; }
 
+TMP_ROOT=""
+
+cleanup(){
+  kill "${SUDO_PID:-}" 2>/dev/null || true
+
+  if [[ -n "${TMP_ROOT}" && -d "${TMP_ROOT}" ]]; then
+    rm -rf "${TMP_ROOT}"
+  fi
+}
+
+trap cleanup EXIT INT TERM
+
+############################################
+# Safety checks
+############################################
+
+require_not_root(){
+  if [[ $(id -u) -eq 0 ]]; then
+    log_error "Do not run as root"
+    exit 1
+  fi
+}
+
+require_commands(){
+  local needed=(curl sudo pacman git lspci)
+  local missing=()
+
+  for cmd in "${needed[@]}"; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      missing+=("$cmd")
+    fi
+  done
+
+  if (( ${#missing[@]} > 0 )); then
+    log_error "Missing required commands: ${missing[*]}"
+    exit 1
+  fi
+}
+
+
+check_internet(){
+  curl -s --max-time 5 https://archlinux.org >/dev/null
+}
+
+confirm_action(){
+  local question="$1"
+  local answer
+
+  read -rp "$question [y/N]: " answer
+
+  if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+    log_info "Operation cancelled"
+    exit 0
+  fi
+}
+
+require_not_root
+require_commands
+
+
+
+if check_internet; then
+  log_ok "Internet connection detected"
+else
+  log_error "No internet connection"
+  exit 1
+fi
+
+confirm_action "This script modifies system files and installs many packages. Continue?"
+
+sudo -v
+
+############################################
+# Keep sudo alive
+############################################
+
+keep_sudo_alive(){
+  while true; do
+    sudo -n true
+    sleep 60
+  done &
+  SUDO_PID=$!
+}
+
+keep_sudo_alive
+
+############################################
+# System detection
+############################################
+
+detect_cpu(){
+  if grep -qi intel /proc/cpuinfo; then
+    CPU="intel"
+  elif grep -qi amd /proc/cpuinfo; then
+    CPU="amd"
+  else
+    CPU="unknown"
+  fi
+
+  log_info "CPU detected: $CPU"
+}
+
+detect_gpu(){
+  if lspci | grep -E "NVIDIA" >/dev/null; then
+    GPU="nvidia"
+  elif lspci | grep -E "AMD|ATI" >/dev/null; then
+    GPU="amd"
+  elif lspci | grep -E "Intel" >/dev/null; then
+    GPU="intel"
+  else
+    GPU="unknown"
+  fi
+
+  log_info "GPU detected: $GPU"
+}
+
+############################################
+# Bootloader detection
+############################################
+
+check_bootloader(){
+  if command -v grub-mkconfig &>/dev/null; then
+    BOOTLOADER="grub"
+  elif command -v bootctl &>/dev/null; then
+    BOOTLOADER="systemd-boot"
+  else
+    BOOTLOADER="unknown"
+  fi
+
+  log_info "Bootloader detected: $BOOTLOADER"
+}
+
+############################################
+# System prep
+############################################
+
+enable_multilib(){
+  if ! grep -q "^\[multilib\]" /etc/pacman.conf; then
+    log_info "Enabling multilib repository"
+    sudo sed -i '/#\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
+     fi
+}
+
+optimize_pacman(){
+  log_info "Applying safe pacman tweaks"
+#!/usr/bin/env bash
+set -euo pipefail
+set -Eeuo pipefail
+
+############################################
+# Arch Gaming Setup Script (Modular)
+############################################
+
+exec > >(tee -i install.log) 2>&1
+
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[33m"
+ENDCOLOR="\e[0m"
+
+log_ok(){ echo -e "${GREEN}[OK]${ENDCOLOR} $1"; }
+log_info(){ echo -e "${YELLOW}[INFO]${ENDCOLOR} $1"; }
+log_error(){ echo -e "${RED}[ERROR]${ENDCOLOR} $1"; }
+
+TMP_ROOT=""
+
+cleanup(){
+  kill "${SUDO_PID:-}" 2>/dev/null || true
+
+  if [[ -n "${TMP_ROOT}" && -d "${TMP_ROOT}" ]]; then
+    rm -rf "${TMP_ROOT}"
+  fi
+}
+
+trap cleanup EXIT INT TERM
+
 ############################################
 # Safety checks
 ############################################
@@ -24,10 +200,47 @@ if [[ $(id -u) -eq 0 ]]; then
   log_error "Do not run as root"
   exit 1
 fi
+require_not_root(){
+  if [[ $(id -u) -eq 0 ]]; then
+    log_error "Do not run as root"
+    exit 1
+  fi
+}
+
+require_commands(){
+  local needed=(curl sudo pacman git lspci)
+  local missing=()
+
+  for cmd in "${needed[@]}"; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+      missing+=("$cmd")
+    fi
+  done
+
+  if (( ${#missing[@]} > 0 )); then
+    log_error "Missing required commands: ${missing[*]}"
+    exit 1
+  fi
+}
 
 check_internet(){
   curl -s --max-time 5 https://archlinux.org >/dev/null
 }
+
+confirm_action(){
+  local question="$1"
+  local answer
+
+  read -rp "$question [y/N]: " answer
+
+  if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+    log_info "Operation cancelled"
+    exit 0
+  fi
+}
+
+require_not_root
+require_commands
 
 if check_internet; then
   log_ok "Internet connection detected"
@@ -35,6 +248,8 @@ else
   log_error "No internet connection"
   exit 1
 fi
+
+confirm_action "This script modifies system files and installs many packages. Continue?"
 
 sudo -v
 
@@ -103,6 +318,7 @@ check_bootloader(){
 
 ############################################
 # Enable multilib
+# System prep
 ############################################
 
 enable_multilib(){
@@ -112,10 +328,28 @@ enable_multilib(){
     log_info "Enabling multilib repository"
 
     sudo sed -i '/#\[multilib\]/,/Include/s/^#//' /etc/pacman.conf
-
-    sudo pacman -Syy
-
   fi
+}
+
+optimize_pacman(){
+  log_info "Applying safe pacman tweaks"
+  
+  sudo sed -i 's/^#Color/Color/' /etc/pacman.conf
+  sudo sed -i 's/^#ParallelDownloads =.*/ParallelDownloads = 8/' /etc/pacman.conf
+
+  if ! grep -q "^ILoveCandy" /etc/pacman.conf; then
+    sudo sed -i '/^ParallelDownloads/a ILoveCandy' /etc/pacman.conf
+  fi
+}
+
+refresh_databases(){
+  log_info "Refreshing package databases"
+  sudo pacman -Syy --noconfirm
+}
+
+update_system(){
+  log_info "Updating system packages"
+  sudo pacman -Syu --noconfirm
 }
 
 ############################################
@@ -123,29 +357,66 @@ enable_multilib(){
 ############################################
 
 install_base(){
-
-sudo pacman -S --needed --noconfirm \
- git base-devel curl wget nano vim unzip
-
+  sudo pacman -S --needed --noconfirm \
+    git base-devel curl wget nano vim unzip reflector
 }
+
+############################################
+# Optional Chaotic-AUR repo
+############################################
+
+setup_chaotic_aur(){
+  local answer
+
+  if grep -q "\[chaotic-aur\]" /etc/pacman.conf; then
+    log_ok "Chaotic-AUR is already configured"
+    return
+  fi
+
+  read -rp "Do you want to configure Chaotic-AUR repository? [y/N]: " answer
+    if [[ ! "$answer" =~ ^[Yy]$ ]]; then
+    log_info "Skipping Chaotic-AUR setup"
+    return
+  fi
+
+  log_info "Configuring Chaotic-AUR"
+
+  sudo pacman-key --recv-key 3056513887B78AEB --keyserver keyserver.ubuntu.com
+  sudo pacman-key --lsign-key 3056513887B78AEB
+  sudo pacman -U --noconfirm \
+    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' \
+    'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
+
+  sudo tee -a /etc/pacman.conf >/dev/null <<'CHAOTIC'
+
+[chaotic-aur]
+Include = /etc/pacman.d/chaotic-mirrorlist
+CHAOTIC
+
+  refresh_databases
+}
+
 
 ############################################
 # Paru installation
 ############################################
 
 install_paru(){
-
-if ! command -v paru &>/dev/null; then
+  if command -v paru &>/dev/null; then
+    log_ok "paru already installed"
+    return
+  fi
 
   log_info "Installing paru AUR helper"
+  
+  TMP_ROOT=$(mktemp -d)
+  pushd "$TMP_ROOT" >/dev/null
 
   git clone https://aur.archlinux.org/paru.git
   cd paru
   makepkg -si --noconfirm
-  cd ..
-  rm -rf paru
-
-fi
+ 
+  popd >/dev/null
 
 }
 
@@ -154,19 +425,17 @@ fi
 ############################################
 
 install_microcode(){
-
-case "$CPU" in
-
-intel)
- sudo pacman -S --needed --noconfirm intel-ucode
- ;;
-
-amd)
- sudo pacman -S --needed --noconfirm amd-ucode
- ;;
-
-esac
-
+  case "$CPU" in
+    intel)
+      sudo pacman -S --needed --noconfirm intel-ucode
+      ;;
+    amd)
+      sudo pacman -S --needed --noconfirm amd-ucode
+      ;;
+    *)
+      log_info "Unknown CPU vendor; skipping microcode"
+      ;;
+  esac
 }
 
 ############################################
@@ -174,55 +443,58 @@ esac
 ############################################
 
 install_nvidia(){
+   log_info "Installing NVIDIA drivers and gaming dependencies"
 
-log_info "Installing NVIDIA drivers and gaming dependencies"
+  sudo pacman -S --needed --noconfirm \
+    dkms \
+    linux-zen \
+    linux-zen-headers \
+    libglvnd \
+    vulkan-icd-loader \
+    lib32-vulkan-icd-loader \
+    vulkan-tools \
+    egl-wayland \
+    egl-gbm \
+    egl-x11 \
+    lib32-libglvnd
 
-sudo pacman -S --needed --noconfirm \
- dkms \
- linux-zen \
- linux-zen-headers \
- libglvnd \
- vulkan-icd-loader \
- lib32-vulkan-icd-loader \
- vulkan-tools \
- egl-wayland \
- egl-gbm \
- egl-x11 \
- lib32-libglvnd
-
-paru -S --needed --noconfirm \
- nvidia-580xx-dkms \
- nvidia-580xx-utils \
- lib32-nvidia-580xx-utils \
- nvidia-580xx-settings \
- opencl-nvidia-580xx \
- lib32-opencl-nvidia-580xx \
- libxnvctrl-580xx
+  paru -S --needed --noconfirm \
+    nvidia-580xx-dkms \
+    nvidia-580xx-utils \
+    lib32-nvidia-580xx-utils \
+    nvidia-580xx-settings \
+    opencl-nvidia-580xx \
+    lib32-opencl-nvidia-580xx \
+    libxnvctrl-580xx
 
 }
 
 configure_nvidia(){
-
-log_info "Configuring NVIDIA modules"
-
-sudo sed -i 's/^MODULES=.*/MODULES=(nvidia nvidia_modeset nvidia_uvm nvidia_drm)/' /etc/mkinitcpio.conf
-
-sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<EOF
+ log_info "Configuring NVIDIA modules"
+ sudo tee /etc/modprobe.d/nvidia.conf > /dev/null <<EOF2
 options nvidia_drm modeset=1
-EOF
 
-sudo mkinitcpio -P
+EOF2
+  sudo mkinitcpio -P
+  sudo systemctl enable nvidia-persistenced.service
 
-sudo systemctl enable nvidia-persistenced.service
+  if [[ "$BOOTLOADER" == "grub" ]]; then
+    if ! grep -q "nvidia_drm.modeset=1" /etc/default/grub; then
+      sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia_drm.modeset=1 /' /etc/default/grub
+    fi
+    sudo grub-mkconfig -o /boot/grub/grub.cfg
+  elif [[ "$BOOTLOADER" == "systemd-boot" ]]; then
+    shopt -s nullglob
+     for entry in /boot/loader/entries/*.conf; do
+      if [[ -f "$entry" ]] && ! grep -q "nvidia_drm.modeset=1" "$entry"; then
+        sudo sed -i '/^options / s/$/ nvidia_drm.modeset=1/' "$entry"
+      fi
+    done
 
-if [[ "$BOOTLOADER" == "grub" ]]; then
-
- sudo sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="nvidia_drm.modeset=1 /' /etc/default/grub
-
- sudo grub-mkconfig -o /boot/grub/grub.cfg
-
-fi
-
+    shopt -u nullglob
+  else
+    log_info "Bootloader not recognized. Add nvidia_drm.modeset=1 manually if needed"
+  fi
 }
 
 ############################################
@@ -230,22 +502,49 @@ fi
 ############################################
 
 install_plasma(){
+  echo "Instalando entorno KDE Plasma y componentes de interfaz..."
+  sudo pacman -S --needed --noconfirm \
+    plasma-desktop \
+    plasma-welcome \
+    systemsettings \
+    plasma-pa \
+    plasma-nm \
+    powerdevil \
+    power-profiles-daemon \
+    kscreen \
+    kde-gtk-config \
+    breeze-gtk \
+    xdg-desktop-portal-kde \
+    konsole \
+    dolphin \
+    kate \
+    sddm-kcm \
+    kio-admin \
+    bluedevil \
+    ark \
+    networkmanager \
+    kwalletmanager
 
-log_info "Installing KDE Plasma minimal"
+  sudo systemctl enable sddm
+  sudo systemctl enable NetworkManager
+  sudo systemctl enable power-profiles-daemon
+}
 
-sudo pacman -S --needed --noconfirm \
- plasma-desktop \
- konsole \
- dolphin \
- kate \
- sddm \
- networkmanager \
- plasma-nm \
- power-profiles-daemon
 
-sudo systemctl enable sddm
-sudo systemctl enable NetworkManager
 
+install_audio_bluetooth(){
+  log_info "Installing PipeWire and Bluetooth stack"
+  sudo pacman -S --needed --noconfirm \
+    pipewire \
+    pipewire-alsa \
+    pipewire-pulse \
+    pipewire-jack \
+    wireplumber \
+    bluez \
+    bluez-utils \
+    pavucontrol
+
+  sudo systemctl enable bluetooth
 }
 
 ############################################
@@ -253,44 +552,33 @@ sudo systemctl enable NetworkManager
 ############################################
 
 install_gaming(){
+  log_info "Instalando entorno Gaming y utilidades de sistema"
 
-log_info "Installing gaming environment"
+  sudo pacman -S --needed --noconfirm \
+    steam \
+    lutris \
+    wine-staging \
+    winetricks \
+    wine-mono \
+    wine-gecko \
+    gamescope \
+    mangohud \
+    lib32-mangohud \
+    firefox 
+    
+  sudo pacman -S --needed --noconfirm \
+    btop fastfetch fish neovim tree ncdu duf irqbalance
 
-sudo pacman -S --needed --noconfirm \
- steam \
- lutris \
- wine-staging \
- winetricks \
- wine-mono \
- wine-gecko \
- gamescope \
- mangohud \
- lib32-mangohud \
- vkbasalt \
- lib32-vkbasalt \
- pipewire \
- bluez \
- bluez-utils \
- pipewire-alsa \
- pipewire-pulse \
- pavucontrol \
- firefox \
- vesktop
+  paru -S --needed --noconfirm \
+    proton-ge-custom-bin \
+    ananicy-cpp cachyos-ananicy-rules \
+    vkbasalt lib32-vkbasalt \
+    vesktop \
+    preload
 
-sudo pacman -S --needed --noconfirm \
- btop fastfetch fish neovim tree ncdu duf
-
-sudo pacman -S --needed --noconfirm \
- irqbalance preload
-
-paru -S --needed --noconfirm \
- proton-ge-custom-bin \
- ananicy-cpp \
- cachyos-ananicy-rules
-
-sudo systemctl enable --now irqbalance
-sudo systemctl enable --now preload
-sudo systemctl enable --now ananicy-cpp
+  sudo systemctl enable --now irqbalance
+  sudo systemctl enable --now preload
+  sudo systemctl enable --now ananicy-cpp
 
 }
 
@@ -299,16 +587,32 @@ sudo systemctl enable --now ananicy-cpp
 ############################################
 
 configure_gaming_kernel(){
-
-log_info "Applying gaming sysctl tweaks"
-
-sudo tee /etc/sysctl.d/80-gamecompatibility.conf > /dev/null <<EOF
+  log_info "Aplicando optimizaciones de Kernel (Gaming + HDD)"
+  
+  # Usamos un solo archivo para centralizar las mejoras
+  sudo tee /etc/sysctl.d/80-gamecompatibility.conf > /dev/null <<EOF2
+# --- SECCIÓN GAMING (Arch Wiki / SteamOS) ---
+# Necesario para evitar crashes en juegos modernos (Proton)
 vm.max_map_count = 2147483642
-EOF
 
-sudo sysctl --system
+# --- SECCIÓN MEMORIA Y HDD (Optimización 8GB RAM) ---
+# Retrasa el uso del HDD lo más posible
+vm.swappiness = 10
+# Mantiene el índice de archivos en RAM (ayuda a la fluidez del HDD)
+vm.vfs_cache_pressure = 50
+# Evita ráfagas pesadas de escritura que congelen el HDD
+vm.dirty_ratio = 10
+vm.dirty_background_ratio = 5
 
+# --- SECCIÓN PROCESADOR (i3-3220 Latency) ---
+# Organiza procesos por grupos para que el escritorio no se trabe al jugar
+kernel.sched_autogroup_enabled = 1
+EOF2
+  
+  sudo sysctl --system
 }
+
+
 
 ############################################
 # Menu
