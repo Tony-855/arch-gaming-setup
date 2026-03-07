@@ -568,14 +568,15 @@ install_gaming(){
     firefox 
     
   sudo pacman -S --needed --noconfirm \
-    btop fastfetch fish neovim tree ncdu duf irqbalance
+    btop fastfetch fish neovim tree ncdu duf irqbalance cava
 
   paru -S --needed --noconfirm \
     proton-ge-custom-bin \
     ananicy-cpp \
     vkbasalt lib32-vkbasalt \
-    vesktop \
-    preload
+    vesktop heroic-games-launcher-bin \
+    preload \
+    xone-dkms-git dxvk-bin vkd3d-proton-bin
 
   sudo systemctl enable --now irqbalance
   sudo systemctl enable --now preload
