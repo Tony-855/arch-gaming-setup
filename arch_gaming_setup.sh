@@ -525,7 +525,7 @@ install_plasma(){
     ark \
     networkmanager \
     kwalletmanager \
-    kvantum
+    kvantum-qt5
 
   sudo systemctl enable sddm
   sudo systemctl enable NetworkManager
