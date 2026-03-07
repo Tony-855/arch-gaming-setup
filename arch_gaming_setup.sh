@@ -164,6 +164,7 @@ optimize_pacman(){
 #!/usr/bin/env bash
 set -euo pipefail
 set -Eeuo pipefail
+}
 
 ############################################
 # Arch Gaming Setup Script (Modular)
@@ -683,5 +684,4 @@ install_paru
 
 menu
 
-log_ok "Instalación terminada."
-log_info "Es recomendable reiniciar."
+log_ok "Instalación terminada, por favor, reinicie el sistema."
