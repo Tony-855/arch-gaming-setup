@@ -572,7 +572,7 @@ install_gaming(){
 
   paru -S --needed --noconfirm \
     proton-ge-custom-bin \
-    ananicy-cpp cachyos-ananicy-rules \
+    ananicy-cpp \
     vkbasalt lib32-vkbasalt \
     vesktop \
     preload
