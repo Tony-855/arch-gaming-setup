@@ -159,13 +159,6 @@ enable_multilib(){
      fi
 }
 
-optimize_pacman(){
-  log_info "Applying safe pacman tweaks"
-#!/usr/bin/env bash
-set -euo pipefail
-set -Eeuo pipefail
-}
-
 ############################################
 # Arch Gaming Setup Script (Modular)
 ############################################
