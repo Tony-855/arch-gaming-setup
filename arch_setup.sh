@@ -1,6 +1,6 @@
 ############################################
 
-Arch Gaming Setup Script (Modular)
+# Arch Gaming Setup Script (Modular)       #
 
 ############################################
 
