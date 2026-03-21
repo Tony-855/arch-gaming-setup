@@ -76,10 +76,6 @@ install_kde() {
 	sudo pacman -S --needed --noconfirm ark dolphin kate konsole plasma-meta plasma-workspace
 	sudo systemctl enable NetworkManager
 }
-command -v paru &>/dev/null || {
-    echo -e "${ROJO}paru no está instalado."
-    exit 1
-}
 # Drivers de gráfica
 install_nvidia() {
 	echo -e "${VERDE}Iniciando la descarga de Drivers Nvidia 580xx, esto puede tomar un tiempo."
@@ -143,6 +139,10 @@ main() {
     activar_multilib
     chaotic_aur
     update_system
+	command -v paru &>/dev/null || {
+    echo -e "${ROJO}paru no está instalado."
+    exit 1
+}
 
     install_kde
     install_nvidia
