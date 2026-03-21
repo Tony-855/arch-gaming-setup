@@ -144,7 +144,7 @@ main() {
     chaotic_aur
     update_system
 
-    # install_kde
+    install_kde
     install_nvidia
     paquetes_gaming
     compatibilidad
