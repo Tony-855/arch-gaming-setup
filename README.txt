@@ -1,18 +1,14 @@
-Mi primer script para Arch Linux y hacerlo gamer.
+# Arch Linux Gaming Setup
 
-Comandos a utilizar:
+Script para configurar Arch Linux con:
+- KDE Plasma
+- Drivers NVIDIA 580xx
+- Entorno gaming completo
 
-git clone https://github.com/Tony-855/arch-gaming-setup.git
-cd arch-gaming-setup
-chmod +x arch_gaming_setup.sh
-./arch_gaming_setup.sh
+## Instalación
 
-¿Qué hace ahora el script?
-- Valida dependencias básicas y confirma antes de modificar el sistema.
-- Detecta CPU, GPU y bootloader automáticamente.
-- Prepara multilib, aplica ajustes seguros de pacman y actualiza paquetes.
-- Permite configurar Chaotic-AUR de forma opcional.
-- Mantiene tu stack gamer (drivers NVIDIA 580xx, Proton GE, etc.) y añade una opción separada para audio/Bluetooth.
-
-Recomendación:
-- Reinicia al final para asegurar que módulos, kernel parameters y servicios queden aplicados.
+```bash
+git clone https://github.com/TU_USUARIO/dotfiles.git
+cd dotfiles
+chmod +x archie.sh
+./archie.sh
